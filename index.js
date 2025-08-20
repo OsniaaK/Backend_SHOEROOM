@@ -9,8 +9,12 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 // Configure CORS middleware
+const allowedOrigins = [
+  'https://shoeroomstore.vercel.app',
+  'http://localhost:5173'
+];
+
 app.use((req, res, next) => {
-  const allowedOrigins = [`${process.env.RENDER_URI}/api/products`,'http://localhost:5173'];
   const origin = req.headers.origin;
   
   if (allowedOrigins.includes(origin)) {
