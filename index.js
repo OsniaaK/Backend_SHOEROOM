@@ -8,26 +8,27 @@ const invoicesRoutes = require("./routes/invoices");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Configure CORS middleware
+// Configuración CORS
 const allowedOrigins = [
   'https://shoeroomstore.vercel.app',
   'http://localhost:5173'
 ];
 
+// Middleware CORS mejorado
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
+  // Permitir el origen si está en la lista blanca
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
-  
-  // Handle preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
+    
+    // Manejar preflight
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
   }
   
   next();
