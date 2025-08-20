@@ -60,9 +60,6 @@ async function generateInvoiceNumber() {
 }
 
 router.post('/', async (req, res) => {
-  // Set CORS headers for the actual response
-  res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
-  res.header('Access-Control-Allow-Credentials', 'true');
   try {
     const { items, totalAmount } = req.body;
     if (!items || items.length === 0 || !totalAmount) {
