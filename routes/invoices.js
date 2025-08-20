@@ -54,9 +54,9 @@ async function generateInvoiceNumber() {
   const lastInvoice = await Invoice.findOne().sort({ createdAt: -1 });
   if (lastInvoice) {
     const lastNumber = parseInt(lastInvoice.invoiceNumber.split('-')[1]);
-    return `INV-${lastNumber + 1}`;
+    return `FAC-${lastNumber + 1}`;
   }
-  return 'INV-1001';
+  return 'FAC-1001';
 }
 
 router.post('/', async (req, res) => {
@@ -268,7 +268,9 @@ router.post('/', async (req, res) => {
 });
 router.get('/', async (req, res) => {
   try {
-    const invoices = await Invoice.find().sort({ createdAt: -1 });
+    const invoices = await Invoice.find()
+      .sort({ createdAt: -1 })
+      .populate('items.product', 'name sku');
     res.status(200).json(invoices);
   } catch (error) {
     res.status(500).json({ message: 'Server error while fetching invoices.' });
