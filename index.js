@@ -14,11 +14,11 @@ const allowedOrigins = [
   'http://localhost:5173'
 ];
 
-// Middleware CORS mejorado
+// Middleware CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
-  // Permitir el origen si está en la lista blanca
+  // Si el origen está en la lista blanca, lo permitimos
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
