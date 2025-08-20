@@ -3,12 +3,41 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 const productsRoutes = require("./routes/products");
+const invoicesRoutes = require("./routes/invoices");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-app.use(cors());
+
+// Configure CORS middleware
+app.use((req, res, next) => {
+  const allowedOrigins = [`${process.env.RENDER_URI}/api/products`,'http://localhost:5173'];
+  const origin = req.headers.origin;
+  
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
 app.use(express.json());
 app.use("/api/products", productsRoutes);
+app.use("/api/invoices", invoicesRoutes);
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('❌ An unexpected error occurred:', err);
+  res.status(500).json({ message: 'An internal server error occurred.' });
+});
+
 mongoose.connect(process.env.MONGO_URI ||"mongodb://localhost:27017/shoeroom")
 .then(() => {
   console.log("✅ Conectado a MongoDB exitosamente");
