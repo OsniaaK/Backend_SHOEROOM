@@ -71,6 +71,15 @@ router.get('/test-delete', (req, res) => {
   res.status(200).json({ message: 'Test DELETE endpoint working' });
 });
 
+// Enable CORS for the DELETE endpoint
+router.options('/', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.status(200).send();
+});
+
 // Delete all invoices
 router.delete('/', async (req, res) => {
   console.log('DELETE /api/invoices/ endpoint hit');
