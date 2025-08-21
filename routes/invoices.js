@@ -59,6 +59,92 @@ async function generateInvoiceNumber() {
   return 'FAC-1001';
 }
 
+// Test route to verify route registration
+router.get('/test-route', (req, res) => {
+  console.log('Test route hit');
+  res.status(200).json({ message: 'Test route is working' });
+});
+
+// Test route to verify DELETE endpoint
+router.get('/test-delete', (req, res) => {
+  console.log('Test DELETE endpoint hit');
+  res.status(200).json({ message: 'Test DELETE endpoint working' });
+});
+
+// Delete all invoices
+router.delete('/', async (req, res) => {
+  console.log('DELETE /api/invoices/ endpoint hit');
+  console.log('Request URL:', req.originalUrl);
+  console.log('Request method:', req.method);
+  console.log('Request headers:', req.headers);
+  
+  try {
+    console.log('Attempting to delete all invoices...');
+    
+    // First, verify the database connection
+    if (mongoose.connection.readyState !== 1) {
+      console.error('Database not connected');
+      return res.status(503).json({
+        success: false,
+        message: 'Database not connected',
+        error: 'DATABASE_ERROR'
+      });
+    }
+    
+    const result = await Invoice.deleteMany({});
+    console.log('Delete result:', result);
+    
+    if (result.deletedCount === 0) {
+      console.log('No invoices found to delete');
+      return res.status(200).json({ 
+        success: true,
+        message: 'No invoices found to delete', 
+        count: 0 
+      });
+    }
+    
+    console.log(`Successfully deleted ${result.deletedCount} invoices`);
+    return res.status(200).json({ 
+      success: true,
+      message: 'All invoices deleted successfully', 
+      count: result.deletedCount 
+    });
+    
+  } catch (error) {
+    console.error('Error deleting invoices:', error);
+    
+    // Check if headers have already been sent
+    if (res.headersSent) {
+      console.error('Headers already sent, cannot send error response');
+      return;
+    }
+    
+    // Handle specific error types
+    if (error.name === 'MongoError') {
+      return res.status(503).json({
+        success: false,
+        message: 'Database error',
+        error: error.message,
+        code: error.code
+      });
+    }
+    
+    // Default error response
+    return res.status(500).json({ 
+      success: false,
+      message: 'Error al eliminar las facturas',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Debug route to test DELETE method
+router.delete('/test', (req, res) => {
+  console.log('Test DELETE endpoint hit');
+  res.status(200).json({ message: 'Test DELETE endpoint works' });
+});
+
+// Create a new invoice
 router.post('/', async (req, res) => {
   try {
     const { items, totalAmount } = req.body;
