@@ -60,10 +60,22 @@ async function generateSku(category, name) {
 router.get("/", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = parseInt(req.query.limit) || 12;
     const skip = (page - 1) * limit;
+    const { search, category } = req.query;
+    const query = {};
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { sku: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+  
+    if (category && category.toLowerCase() !== 'todos') {
+      query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+    }
 
-    // Solo los campos necesarios para la lista de productos
     const projection = {
       name: 1,
       sku: 1,
@@ -72,16 +84,18 @@ router.get("/", async (req, res) => {
       category: 1,
       image: 1,
       discount: 1,
-      talle: 1
+      talle: 1,
+      description: 1,
+      createdAt: 1
     };
 
     const [products, total] = await Promise.all([
-      Product.find({}, projection)
+      Product.find(query, projection)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      Product.countDocuments()
+      Product.countDocuments(query)
     ]);
 
     res.json({
