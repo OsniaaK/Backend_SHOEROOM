@@ -4,12 +4,10 @@ const mongoose = require('mongoose');
 const Invoice = require('../models/Invoice');
 const Product = require('../models/Product');
 
-// Helper function to validate product stock
 async function validateAndReserveStock(items, session) {
   const productUpdates = [];
   const products = [];
-  
-  // First pass: validate all items have enough stock
+
   for (const item of items) {
     const product = await Product.findById(item.product).session(session);
     if (!product) {
@@ -31,8 +29,7 @@ async function validateAndReserveStock(items, session) {
     
     products.push({ product, item });
   }
-  
-  // Second pass: update stock if all validations pass
+
   for (const { product, item } of products) {
     await Product.updateStock(
       product._id, 
@@ -59,19 +56,16 @@ async function generateInvoiceNumber() {
   return 'FAC-1001';
 }
 
-// Test route to verify route registration
 router.get('/test-route', (req, res) => {
   console.log('Test route hit');
   res.status(200).json({ message: 'Test route is working' });
 });
 
-// Test route to verify DELETE endpoint
 router.get('/test-delete', (req, res) => {
   console.log('Test DELETE endpoint hit');
   res.status(200).json({ message: 'Test DELETE endpoint working' });
 });
 
-// Enable CORS for the DELETE endpoint
 router.options('/', (req, res) => {
   res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.header('Access-Control-Allow-Methods', 'DELETE, OPTIONS');
@@ -80,7 +74,6 @@ router.options('/', (req, res) => {
   res.status(200).send();
 });
 
-// Delete all invoices
 router.delete('/', async (req, res) => {
   console.log('DELETE /api/invoices/ endpoint hit');
   console.log('Request URL:', req.originalUrl);
@@ -90,7 +83,6 @@ router.delete('/', async (req, res) => {
   try {
     console.log('Attempting to delete all invoices...');
     
-    // First, verify the database connection
     if (mongoose.connection.readyState !== 1) {
       console.error('Database not connected');
       return res.status(503).json({
@@ -122,13 +114,11 @@ router.delete('/', async (req, res) => {
   } catch (error) {
     console.error('Error deleting invoices:', error);
     
-    // Check if headers have already been sent
     if (res.headersSent) {
       console.error('Headers already sent, cannot send error response');
       return;
     }
     
-    // Handle specific error types
     if (error.name === 'MongoError') {
       return res.status(503).json({
         success: false,
@@ -138,7 +128,6 @@ router.delete('/', async (req, res) => {
       });
     }
     
-    // Default error response
     return res.status(500).json({ 
       success: false,
       message: 'Error al eliminar las facturas',
@@ -147,13 +136,11 @@ router.delete('/', async (req, res) => {
   }
 });
 
-// Debug route to test DELETE method
 router.delete('/test', (req, res) => {
   console.log('Test DELETE endpoint hit');
   res.status(200).json({ message: 'Test DELETE endpoint works' });
 });
 
-// Create a new invoice
 router.post('/', async (req, res) => {
   try {
     const { items, totalAmount } = req.body;
@@ -164,7 +151,6 @@ router.post('/', async (req, res) => {
     let session;
     
     try {
-      // Start session only if not in test environment
       if (process.env.NODE_ENV !== 'test') {
         session = await mongoose.startSession();
         session.startTransaction();
@@ -173,21 +159,18 @@ router.post('/', async (req, res) => {
         console.log('Processing item:', JSON.stringify(item, null, 2)); // Debug log with pretty print
         let product;
         
-        // Try to find by ID first as it's the most reliable
         if (item.product) {
           console.log('Searching by ID:', item.product);
           product = await Product.findById(item.product);
           if (product) console.log('Found product by ID:', product.name);
         }
         
-        // If product not found by ID, try by SKU
         if (!product && item.productSku) {
           console.log('Product not found by ID, trying by SKU:', item.productSku);
           product = await Product.findOne({ sku: item.productSku });
           if (product) console.log('Found product by SKU:', product.name);
         }
         
-        // If still not found, try by product name as last resort
         if (!product && item.productName) {
           console.log('Product not found by SKU, trying by name:', item.productName);
           product = await Product.findOne({ name: item.productName });
@@ -200,7 +183,6 @@ router.post('/', async (req, res) => {
             session.endSession();
           }
           
-          // Log all products for debugging
           const allProducts = await Product.find({});
           console.log('Available products:', allProducts.map(p => ({
             _id: p._id,
@@ -222,13 +204,10 @@ router.post('/', async (req, res) => {
           });
         }
 
-        // Usar el mismo enfoque que en ProductForm para manejar el stock
         console.log('Processing stock update using ProductForm approach');
         
-        // Buscar el tamaño específico
         const sizeIndex = product.sizes.findIndex(s => s.size === item.size);
         
-        // Verificar si el tamaño existe
         if (sizeIndex === -1) {
           const availableSizes = product.sizes.map(s => s.size);
           console.error(`Size not found. Available sizes: ${availableSizes.join(', ')}`);
@@ -247,7 +226,6 @@ router.post('/', async (req, res) => {
           });
         }
         
-        // Verificar si hay suficiente stock
         const currentQty = product.sizes[sizeIndex].quantity;
         const requestedQty = item.quantity;
         
@@ -283,25 +261,19 @@ router.post('/', async (req, res) => {
           });
         }
         
-        // Actualizar el stock usando el mismo enfoque que en ProductForm
         try {
-          // Crear una copia del array de tamaños
           const updatedSizes = [...product.sizes];
           
-          // Actualizar la cantidad del tamaño específico
           updatedSizes[sizeIndex] = {
             ...updatedSizes[sizeIndex],
             quantity: updatedSizes[sizeIndex].quantity - requestedQty
           };
           
-          // Calcular el nuevo stock total (suma de todas las cantidades)
           const newStock = updatedSizes.reduce((total, s) => total + (Number(s.quantity) || 0), 0);
           
-          // Actualizar el producto
           product.sizes = updatedSizes;
           product.stock = newStock;
           
-          // Guardar los cambios
           await product.save({ session });
           
           console.log('Stock updated successfully:', {
@@ -351,7 +323,7 @@ router.post('/', async (req, res) => {
         await session.abortTransaction();
         session.endSession();
       }
-      throw error; // This will be caught by the outer catch block
+      throw error;
     }
   } catch (error) {
     console.error('Error creating invoice:', error);

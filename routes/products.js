@@ -56,14 +56,48 @@ async function generateSku(category, name) {
   const seq = String(count + 1).padStart(3, "0");
   return `${brandCode}-${modelCode}-${seq}`;
 }
+
 router.get("/", async (req, res) => {
   try {
-    const products = await Product.find();
-    res.json(products);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    // Solo los campos necesarios para la lista de productos
+    const projection = {
+      name: 1,
+      sku: 1,
+      price: 1,
+      stock: 1,
+      category: 1,
+      image: 1,
+      discount: 1,
+      talle: 1
+    };
+
+    const [products, total] = await Promise.all([
+      Product.find({}, projection)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Product.countDocuments()
+    ]);
+
+    res.json({
+      data: products,
+      pagination: {
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+        limit
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: "Error al obtener productos" });
   }
 });
+
 router.get("/:sku", async (req, res) => {
   try {
     const product = await Product.findOne({ sku: req.params.sku });
