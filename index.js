@@ -8,36 +8,37 @@ const invoicesRoutes = require("./routes/invoices");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// Lista de orígenes permitidos
 const allowedOrigins = [
   'https://shoeroomstore.vercel.app',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
 ];
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  console.log(`Incoming ${req.method} request to ${req.path} from origin:`, origin);
-
-  if (process.env.NODE_ENV === 'development' || allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
-    if (req.method === 'OPTIONS') {
-      console.log('Handling OPTIONS preflight request for path:', req.path);
-      res.header('Access-Control-Max-Age', '86400');
-      return res.status(204).end();
+// Configuración de CORS
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Permite peticiones sin origen (como Postman, apps móviles, etc.)
+    // o si el origen está en la lista de permitidos.
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
     }
-  } else {
-    console.warn('Blocked request from unauthorized origin:', origin);
-  }
-  next();
-});
+  },
+  credentials: true,
+  optionsSuccessStatus: 200 // Para navegadores antiguos
+};
+
+// Usar el middleware de CORS
+app.use(cors(corsOptions));
+
+// Middleware para parsear JSON
 app.use(express.json());
 
+// Middleware de logging (opcional, pero útil)
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-  console.log('Headers:', req.headers);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} from origin: ${req.headers.origin}`);
   next();
 });
 
@@ -59,6 +60,12 @@ app.use("/api/products", productsRoutes);
 app.use("/api/invoices", invoicesRoutes);
 
 app.use((err, req, res, next) => {
+  // Manejo de errores de CORS
+  if (err.message === 'Not allowed by CORS') {
+    console.error('CORS Error:', err.message);
+    return res.status(403).json({ message: 'Forbidden: CORS policy does not allow access from this origin.' });
+  }
+  
   console.error('❌ An unexpected error occurred:', err);
   res.status(500).json({ message: 'An internal server error occurred.' });
 });
