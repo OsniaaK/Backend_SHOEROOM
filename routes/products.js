@@ -58,57 +58,51 @@ async function generateSku(category, name) {
 }
 
 router.get("/", async (req, res) => {
+  const { page = 1, limit = 12, category, search, size } = req.query; // 1. Añadir 'size'
+
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 12;
-    const skip = (page - 1) * limit;
-    const { search, category } = req.query;
     const query = {};
+
+    if (category && category !== "todos") {
+      query.category = category;
+    }
+
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { sku: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
-    }
-  
-    if (category && category.toLowerCase() !== 'todos') {
-      query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+      query.name = { $regex: search, $options: "i" };
     }
 
-    const projection = {
-      name: 1,
-      sku: 1,
-      price: 1,
-      stock: 1,
-      category: 1,
-      image: 1,
-      discount: 1,
-      talle: 1,
-      description: 1,
-      createdAt: 1
-    };
+    // 2. Añadir lógica para filtrar por talle
+    if (size) {
+      query["sizes.size"] = size;
+    }
 
-    const [products, total] = await Promise.all([
-      Product.find(query, projection)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Product.countDocuments(query)
-    ]);
+    const products = await Product.find(query)
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .exec();
+
+    const count = await Product.countDocuments(query);
 
     res.json({
-      data: products,
-      pagination: {
-        total,
-        page,
-        totalPages: Math.ceil(total / limit),
-        limit
-      }
+      products,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page,
+      total: count,
     });
   } catch (err) {
-    res.status(500).json({ error: "Error al obtener productos" });
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
+// Nueva ruta para obtener talles únicos
+router.get("/sizes", async (req, res) => {
+  try {
+    const sizes = await Product.distinct("sizes.size");
+    res.json(sizes.sort((a, b) => a - b)); // Opcional: ordenar talles numéricamente
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
   }
 });
 
