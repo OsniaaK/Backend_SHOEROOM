@@ -58,7 +58,7 @@ async function generateSku(category, name) {
 }
 
 router.get("/", async (req, res) => {
-  const { page = 1, limit = 12, category, search, size } = req.query; // 1. Añadir 'size'
+  const { page = 1, limit = 12, category, search, size } = req.query;
 
   try {
     const query = {};
@@ -71,9 +71,9 @@ router.get("/", async (req, res) => {
       query.name = { $regex: search, $options: "i" };
     }
 
-    // 2. Añadir lógica para filtrar por talle
+    // 1. Cambiar la lógica para filtrar por 'talle'
     if (size) {
-      query["sizes.size"] = size;
+      query.talle = size; // Usamos el campo 'talle' que es un array de strings
     }
 
     const products = await Product.find(query)
@@ -98,8 +98,10 @@ router.get("/", async (req, res) => {
 // Nueva ruta para obtener talles únicos
 router.get("/sizes", async (req, res) => {
   try {
-    const sizes = await Product.distinct("sizes.size");
-    res.json(sizes.sort((a, b) => a - b)); // Opcional: ordenar talles numéricamente
+    // 2. Usar 'talle' para obtener los talles únicos
+    const sizes = await Product.distinct("talle");
+    // La función parseSizeValue ya está en tu archivo, la usamos para un ordenamiento numérico correcto
+    res.json(sizes.sort((a, b) => parseSizeValue(a) - parseSizeValue(b)));
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
