@@ -48,7 +48,6 @@ app.use("/api/products", productsRoutes);
 app.use("/api/invoices", invoicesRoutes);
 
 app.use((err, req, res, next) => {
-  // Manejo de errores de CORS
   if (err.message === 'Not allowed by CORS') {
     console.error('CORS Error:', err.message);
     return res.status(403).json({ message: 'Forbidden: CORS policy does not allow access from this origin.' });

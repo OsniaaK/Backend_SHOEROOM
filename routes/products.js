@@ -11,13 +11,14 @@ function normalizePayload(payload) {
   const data = { ...payload };
   if (data.sizes && Array.isArray(data.sizes)) {
     data.sizes = data.sizes
-      .map(s => ({ size: String(s.size), quantity: Number(s.quantity) || 0 }))
+      .map(s => ({ size: String(s.size).trim(), quantity: Number(s.quantity) || 0 }))
+      .filter(s => s.size && Number(s.quantity) > 0)
       .sort((a, b) => parseSizeValue(a.size) - parseSizeValue(b.size) || a.size.localeCompare(b.size));
     const total = data.sizes.reduce((acc, s) => acc + (Number(s.quantity) || 0), 0);
     data.stock = total;
     data.talle = data.sizes.map(s => s.size);
   } else if (data.talle && Array.isArray(data.talle)) {
-    data.talle = data.talle.map(String).sort((a, b) => parseSizeValue(a) - parseSizeValue(b) || a.localeCompare(b));
+    data.talle = data.talle.map(String).filter(Boolean).sort((a, b) => parseSizeValue(a) - parseSizeValue(b) || a.localeCompare(b));
   }
   return data;
 }
@@ -58,7 +59,7 @@ async function generateSku(category, name) {
 }
 
 router.get("/", async (req, res) => {
-  const { page = 1, limit = 12, category, search, size } = req.query;
+  const { page = 1, limit = 18, category, search, size } = req.query;
 
   try {
     const query = {};

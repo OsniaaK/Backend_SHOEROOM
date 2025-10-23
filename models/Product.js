@@ -64,29 +64,39 @@ ProductSchema.pre("save", function (next) {
   if (this.isModified('sizes') && this.sizes && this.sizes.length > 0) {
     const sizeMap = new Map();
     this.sizes.forEach(size => {
-      sizeMap.set(size.size, size.quantity);
+      const qty = Number(size.quantity) || 0;
+      if (size.size && qty > 0) {
+        sizeMap.set(String(size.size), qty);
+      }
     });
-    
     this.sizes = Array.from(sizeMap.entries()).map(([size, quantity]) => ({
       size,
       quantity: Number(quantity) || 0
     }));
-    
-    this.sizes.sort((a, b) => 
-      parseSizeValue(a.size) - parseSizeValue(b.size) || 
+
+    this.sizes.sort((a, b) =>
+      parseSizeValue(a.size) - parseSizeValue(b.size) ||
       String(a.size).localeCompare(String(b.size))
     );
-    
+
     this.stock = this.sizes.reduce((acc, s) => acc + (Number(s.quantity) || 0), 0);
     this.talle = this.sizes.map(s => s.size);
   } else if (this.isModified('talle') && this.talle && this.talle.length > 0) {
-    this.talle = [...new Set(this.talle)];
-    this.talle.sort((a, b) => 
-      parseSizeValue(a) - parseSizeValue(b) || 
+    this.talle = [...new Set(this.talle.filter(Boolean))];
+    this.talle.sort((a, b) =>
+      parseSizeValue(a) - parseSizeValue(b) ||
       String(a).localeCompare(String(b))
     );
+  } else {
+    if (Array.isArray(this.sizes) && this.sizes.length > 0) {
+      this.sizes = this.sizes.filter(s => Number(s.quantity) > 0);
+      this.stock = this.sizes.reduce((acc, s) => acc + (Number(s.quantity) || 0), 0);
+      this.talle = this.sizes.map(s => s.size);
+    } else if (Array.isArray(this.talle) && this.talle.length > 0) {
+      this.talle = [...new Set(this.talle.filter(Boolean))];
+    }
   }
-  
+
   next();
 });
 
