@@ -156,7 +156,7 @@ router.post('/', async (req, res) => {
         session.startTransaction();
       }
       for (const item of items) {
-        console.log('Processing item:', JSON.stringify(item, null, 2)); // Debug log with pretty print
+        console.log('Processing item:', JSON.stringify(item, null, 2));
         let product;
         
         if (item.product) {

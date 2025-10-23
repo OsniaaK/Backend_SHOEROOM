@@ -7,19 +7,13 @@ const invoicesRoutes = require("./routes/invoices");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-
-// Lista de orígenes permitidos
 const allowedOrigins = [
   'https://shoeroomstore.vercel.app',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
 ];
-
-// Configuración de CORS
 const corsOptions = {
   origin: (origin, callback) => {
-    // Permite peticiones sin origen (como Postman, apps móviles, etc.)
-    // o si el origen está en la lista de permitidos.
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -27,16 +21,10 @@ const corsOptions = {
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200 // Para navegadores antiguos
+  optionsSuccessStatus: 200
 };
-
-// Usar el middleware de CORS
 app.use(cors(corsOptions));
-
-// Middleware para parsear JSON
 app.use(express.json());
-
-// Middleware de logging (opcional, pero útil)
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} from origin: ${req.headers.origin}`);
   next();

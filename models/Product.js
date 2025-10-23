@@ -49,7 +49,7 @@ ProductSchema.methods.updateSizeStock = function(size, quantityChange) {
   }
 
   this.stock = this.sizes.reduce((total, s) => total + (Number(s.quantity) || 0), 0);
-  this.talle = [...new Set([...this.talle, size])]; // Ensure size is in talle array
+  this.talle = [...new Set([...this.talle, size])];
   
   return this;
 };
